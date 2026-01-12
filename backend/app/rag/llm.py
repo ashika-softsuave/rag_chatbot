@@ -7,9 +7,14 @@ client = OpenAI(api_key=settings.OPENAI_API_KEY)
 def generate_answer(context: str, question: str) -> str:
     prompt = f"""
 You are a helpful assistant.
-Answer ONLY from the context below.
-If not found, say "Answer not available in documents".
 
+Use BOTH:
+1. Conversation history
+2. Knowledge base context
+
+Answer the question clearly.
+If the answer is not found in either, say:
+"Answer not available in documents".
 Context:
 {context}
 
