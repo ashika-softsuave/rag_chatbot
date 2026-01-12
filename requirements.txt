@@ -1,0 +1,34 @@
+# FastAPI core
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+
+# Environment variables
+python-dotenv>=1.0.1
+
+# Logging
+loguru>=0.7.2
+
+# Database (used later but installed now)
+sqlalchemy>=2.0.25
+psycopg2-binary>=2.9.9
+alembic>=1.13.1
+
+# Authentication (used later)
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+
+# RAG components (used later)
+sentence-transformers>=2.6.1
+chromadb>=0.4.24
+openai>=1.6.1
+
+# PDF processing (used later)
+pymupdf>=1.23.8
+pdfplumber>=0.10.3
+
+# Frontend
+streamlit>=1.32.0
+
+# API utilities
+requests>=2.31.0
+slowapi>=0.1.9
