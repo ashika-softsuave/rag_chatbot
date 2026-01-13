@@ -5,6 +5,7 @@ from chromadb.config import Settings
 client = chromadb.Client(
     Settings(
         persist_directory="chroma_db",
+        is_persistent=True,
         anonymized_telemetry=False
     )
 )

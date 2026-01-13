@@ -3,76 +3,153 @@ import requests
 
 API_URL = "http://127.0.0.1:8000"
 
-st.set_page_config(page_title="RAG Chatbot", layout="centered")
-st.title("🤖 RAG Chatbot")
+def safe_error_message(res, default="Something went wrong"):
+    try:
+        return res.json().get("detail", default)
+    except Exception:
+        return f"{default} (status code {res.status_code})"
 
-# ---------------- AUTH ----------------
-st.subheader("🔐 Authentication")
-
-token = st.text_input(
-    "JWT Token",
-    type="password",
-    placeholder="Paste your JWT token here"
+st.set_page_config(
+    page_title="RAG Chatbot",
+    page_icon="🤖",
+    layout="wide"
 )
 
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+# ---------------- SESSION STATE ----------------
+if "token" not in st.session_state:
+    st.session_state.token = None
 
-# ---------------- CHAT ----------------
-st.subheader("💬 Ask a Question")
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-question = st.text_input(
-    "Your Question",
-    placeholder="Type your question here..."
-)
+if "chat_titles" not in st.session_state:
+    st.session_state.chat_titles = []
 
-ask_btn = st.button("Ask")
+if "pending_email" not in st.session_state:
+    st.session_state.pending_email = None
 
-if ask_btn:
-    st.write("✅ Ask button clicked")
+if "otp_verified" not in st.session_state:
+    st.session_state.otp_verified = False
 
-    if not token:
-        st.warning("⚠️ Please enter JWT token")
-        st.stop()
+# ---------------- SIDEBAR ----------------
+with st.sidebar:
+    st.title("🤖 RAG Chatbot")
 
-    if not question.strip():
-        st.warning("⚠️ Please enter a question")
-        st.stop()
+    if not st.session_state.token:
+        tab1, tab2 = st.tabs(["Login", "Sign Up"])
+
+        # -------- LOGIN --------
+        with tab1:
+            login_email = st.text_input("Email", key="login_email")
+            login_password = st.text_input("Password", type="password", key="login_password")
+
+            if st.button("Login"):
+                res = requests.post(
+                    f"{API_URL}/auth/login",
+                    json={"email": login_email, "password": login_password}
+                )
+
+                if res.status_code == 200:
+                    st.session_state.token = res.json()["access_token"]
+                    st.success("Logged in successfully")
+                    st.rerun()
+                else:
+                    st.error(safe_error_message(res, "Login failed"))
+
+        # -------- SIGN UP --------
+        with tab2:
+            signup_email = st.text_input("Email", key="signup_email")
+            signup_password = st.text_input("Password", type="password", key="signup_password")
+
+            if st.button("Sign Up"):
+                res = requests.post(
+                    f"{API_URL}/auth/register",
+                    json={"email": signup_email, "password": signup_password}
+                )
+
+                if res.status_code == 200:
+                    st.session_state.pending_email = signup_email
+                    st.success("OTP sent to your email")
+                else:
+                    st.error(safe_error_message(res, "Signup failed"))
+
+        # -------- OTP VERIFICATION --------
+        if st.session_state.pending_email:
+            st.divider()
+            st.subheader("🔐 Verify OTP")
+
+            otp_code = st.text_input("Enter OTP", key="otp_code")
+
+            if st.button("Verify OTP"):
+                res = requests.post(
+                    f"{API_URL}/auth/verify-otp",
+                    json={
+                        "email": st.session_state.pending_email,
+                        "code": otp_code
+                    }
+                )
+
+                if res.status_code == 200:
+                    st.session_state.pending_email = None
+                    st.session_state.otp_verified = True
+                    st.success("Account verified! You can now login.")
+                else:
+                    st.error(safe_error_message(res, "OTP verification failed"))
+
+    else:
+        st.success("✅ Logged in")
+
+        if st.button("🚪 Logout"):
+            st.session_state.token = None
+            st.session_state.messages = []
+            st.session_state.chat_titles = []
+            st.rerun()
+
+        st.divider()
+        st.subheader("🕘 Chat History")
+        for title in st.session_state.chat_titles:
+            st.markdown(f"- {title}")
+
+# ---------------- MAIN CHAT AREA ----------------
+st.title("💬 Chat")
+
+if not st.session_state.token:
+    st.info("Please login to start chatting.")
+    st.stop()
+
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+prompt = st.chat_input("Ask your question...")
+
+if prompt:
+    if not st.session_state.messages:
+        st.session_state.chat_titles.append(prompt[:30])
+
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
     headers = {
-        "Authorization": f"Bearer {token}",
+        "Authorization": f"Bearer {st.session_state.token}",
         "Content-Type": "application/json"
     }
 
-    st.write("📤 Sending request to backend...")
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            res = requests.post(
+                f"{API_URL}/chat/",
+                json={"question": prompt},
+                headers=headers
+            )
 
-    try:
-        res = requests.post(
-            f"{API_URL}/chat/",
-            json={"question": question},
-            headers=headers,
-            timeout=30
-        )
-
-        st.write("📥 Response status:", res.status_code)
-        st.write("📥 Raw response:", res.text)
-
-        if res.status_code == 200:
-            answer = res.json().get("answer", "No answer key")
-            st.success(answer)
-        else:
-            st.error("Backend error")
-
-    except Exception as e:
-        st.error(f"❌ Exception occurred: {e}")
-
-
-# ---------------- CHAT HISTORY ----------------
-if st.session_state.chat_history:
-    st.subheader("📝 Conversation")
-
-    for role, msg in st.session_state.chat_history:
-        if role == "You":
-            st.markdown(f"**🧑 You:** {msg}")
-        else:
-            st.markdown(f"**🤖 Bot:** {msg}")
+            if res.status_code == 200:
+                answer = res.json()["answer"]
+                st.markdown(answer)
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": answer}
+                )
+            else:
+                st.error("Something went wrong while chatting")

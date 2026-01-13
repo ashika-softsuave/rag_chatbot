@@ -16,37 +16,67 @@ from backend.app.auth.schemas import (
     Token,
     OTPVerify
 )
+from backend.app.core.email import send_otp_email
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/register")
 def register(data: UserCreate, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.email == data.email).first():
-        raise HTTPException(400, "Email already registered")
+    email = data.email.strip().lower()
 
+    existing_user = db.query(User).filter(User.email == email).first()
+
+    # Case 1: User already exists and is verified
+    if existing_user and existing_user.is_verified:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Case 2: User exists but NOT verified → resend OTP
+    if existing_user and not existing_user.is_verified:
+        # Remove old OTPs
+        db.query(OTP).filter(OTP.email == email).delete()
+
+        otp_code = str(random.randint(100000, 999999))
+        db.add(
+            OTP(
+                email=email,
+                code=otp_code,
+                expires_at=OTP.expiry()
+            )
+        )
+        db.commit()
+
+        send_otp_email(email, otp_code)
+        return {"message": "OTP resent to your email"}
+
+    # Case 3: New user → create user + send OTP
     user = User(
-        email=data.email,
+        email=email,
         hashed_password=hash_password(data.password),
         is_verified=False
     )
+
     db.add(user)
     db.commit()
 
     otp_code = str(random.randint(100000, 999999))
-    db.add(OTP(
-        email=data.email,
-        code=otp_code,
-        expires_at=OTP.expiry()
-    ))
+    db.add(
+        OTP(
+            email=email,
+            code=otp_code,
+            expires_at=OTP.expiry()
+        )
+    )
     db.commit()
 
-    print("📧 OTP (dev mode):", otp_code)
-    return {"message": "OTP sent to email"}
+    send_otp_email(email, otp_code)
+    return {"message": "OTP sent to your email"}
+
 
 
 @router.post("/verify-otp")
 def verify_otp(data: OTPVerify, db: Session = Depends(get_db)):
+    email = data.email.strip().lower()
     otp = db.query(OTP).filter(
         OTP.email == data.email,
         OTP.code == data.code,
@@ -66,6 +96,7 @@ def verify_otp(data: OTPVerify, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(data: UserLogin, db: Session = Depends(get_db)):
+    email = data.email.strip().lower()
     user = db.query(User).filter(User.email == data.email).first()
 
     if not user:
