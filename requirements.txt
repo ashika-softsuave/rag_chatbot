@@ -8,20 +8,20 @@ python-dotenv>=1.0.1
 # Logging
 loguru>=0.7.2
 
-# Database (used later but installed now)
+# Database 
 sqlalchemy>=2.0.25
 alembic>=1.13.1
 
-# Authentication (used later)
+# Authentication 
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
 
-# RAG components (used later)
+# RAG components
 sentence-transformers>=2.6.1
 chromadb>=0.4.24
 openai>=1.6.1
 
-# PDF processing (used later)
+# PDF processing
 pymupdf>=1.23.8
 pdfplumber>=0.10.3
 
