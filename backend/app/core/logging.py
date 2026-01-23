@@ -2,7 +2,6 @@ import sys
 from loguru import logger
 from backend.app.core.config import get_settings
 
-
 def setup_logging():
     settings = get_settings()
 

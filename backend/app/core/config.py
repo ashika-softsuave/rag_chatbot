@@ -1,6 +1,8 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class Settings(BaseSettings):
     # App
@@ -24,7 +26,7 @@ class Settings(BaseSettings):
     # OpenAI
     OPENAI_API_KEY: str
 
-    # 🔐 SMTP / Email (ADD THIS BLOCK)
+    # SMTP / Email (ADD THIS BLOCK)
     SMTP_HOST: str
     SMTP_PORT: int
     SMTP_EMAIL: str

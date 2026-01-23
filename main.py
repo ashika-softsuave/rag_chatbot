@@ -4,6 +4,8 @@ from backend.app.db.models.user import User
 from backend.app.db.models.otp import OTP
 from backend.app.db.models.conversation import Conversation
 from backend.app.db.models.message import Message
+from backend.app.onboarding.router import router as onboarding_router
+from backend.app.admin.router import router as admin_router
 
 from backend.app.auth.router import router as auth_router
 from backend.app.documents.router import router as doc_router
@@ -32,7 +34,9 @@ app = FastAPI(
 app.include_router(auth_router)
 app.include_router(doc_router)
 app.include_router(chat_router)
+# app.include_router(onboarding_router)
 
+app.include_router(admin_router)
 # CORS
 app.add_middleware(
     CORSMiddleware,

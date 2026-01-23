@@ -14,7 +14,7 @@ def extract_text(pdf_path: str) -> list[str]:
     for page in doc:
         text = page.get_text()
         text = clean_text(text)
-        if len(text) > 50:  # ✅ ignore useless pages
+        if len(text) >= 40 or len(text.split()) >= 7:
             pages.append(text)
 
     return pages

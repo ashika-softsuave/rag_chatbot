@@ -12,9 +12,9 @@ def retrieve_context(query: str, k: int = 5) -> str:
     documents = results.get("documents", [[]])[0]
 
     if not documents:
-        print("❌ No matching chunks found")
+        print("No matching chunks found")
         return ""
 
     context = "\n\n".join(documents)
-    print("🔍 CONTEXT FOUND:\n", context[:500])
+    print("CONTEXT FOUND:\n", context[:500])
     return context
